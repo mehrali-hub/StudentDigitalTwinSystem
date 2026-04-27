@@ -81,18 +81,20 @@ std::string Student::getTrend() const {
 
 std::string Student::getRiskLevel() const {
     const double score = calculatePerformanceScore();
-    if (score < 45.0 || attendanceRate < 65.0 || gpa < 2.0) {
+    if (attendanceRate < 80.0) {
+        return "Debar";
+    }
+    if (score < 60.0 || gpa < 2.0) {
         return "High";
     }
-    if (score < 60.0 || attendanceRate < 75.0 || gpa < 2.6) {
+    if (score < 70.0 || gpa < 2.6) {
         return "Medium";
     }
     return "Low";
 }
 
 bool Student::isAtRisk() const {
-    const std::string risk = getRiskLevel();
-    return risk == "High" || risk == "Medium";
+    return getRiskLevel() != "Low";
 }
 
 std::string Student::getSuggestion() const {
@@ -100,12 +102,21 @@ std::string Student::getSuggestion() const {
     const std::string risk = getRiskLevel();
     const std::string trend = getTrend();
 
-    if (risk == "High") {
+    if (risk == "Debar") {
+        output << "Attendance is below 80%: you can be debarred in this course.";
+    } else if (risk == "High") {
         output << "Urgent intervention: meet an advisor, improve attendance, and review core concepts.";
     } else if (risk == "Medium") {
         output << "Stay consistent: strengthen weekly study habits and track assignment deadlines.";
     } else {
         output << "Maintain the current pace and continue building stronger project outcomes.";
+    }
+
+    if (calculatePerformanceScore() < 60.0) {
+        output << " Risk is much higher because score is below 60%.";
+    }
+    if (gpa < 2.0) {
+        output << " GPA is on warning (below 2.0).";
     }
 
     if (trend == "Declining") {
@@ -131,6 +142,7 @@ std::string Student::getPerformanceBand() const {
     return "Needs Improvement";
 }
 
+
 std::string Student::reportCard() const {
     std::ostringstream output;
     output << "Student ID   : " << studentId << '\n';
@@ -138,11 +150,11 @@ std::string Student::reportCard() const {
     output << "Type         : " << getType() << '\n';
     output << "Profile Tag  : " << getProfileTag() << '\n';
     output << "Department   : " << department << '\n';
-    output << "Study Year   : " << studyYear << '\n';
+    output << "Semester     : " << studyYear << '\n';
     output << "GPA          : " << Utils::formatDouble(gpa) << '\n';
     output << "Attendance   : " << Utils::formatDouble(attendanceRate) << "%\n";
     output << "Assignments  : " << Utils::formatDouble(assignmentScore) << "%\n";
-    output << "Projects     : " << Utils::formatDouble(projectScore) << "%\n";
+    output << "Sem Project  : " << Utils::formatDouble(projectScore) << "%\n";
     output << "Research     : " << Utils::formatDouble(researchScore) << "%\n";
     output << "Scholarship  : " << Utils::formatDouble(scholarshipPercent) << "%\n";
     output << "Previous Score: " << Utils::formatDouble(previousPerformanceScore) << '\n';
@@ -160,7 +172,7 @@ void Student::printSummary(std::ostream& output) const {
            << std::setw(20) << getName().substr(0, 18)
            << std::setw(14) << getType()
            << std::setw(15) << getDepartment().substr(0, 13)
-           << std::setw(8) << getYear()
+           << std::setw(10) << getYear()
            << std::setw(10) << Utils::formatDouble(calculatePerformanceScore())
            << std::setw(12) << getTrend()
            << std::setw(10) << getRiskLevel()

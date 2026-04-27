@@ -4,8 +4,11 @@
 #include "Utils.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <numeric>
 #include <sstream>
+
+using namespace std;
 
 DigitalTwinEngine::DigitalTwinEngine(const std::string& dataFilePath, const std::string& reportFilePath)
     : dataFilePath(dataFilePath), reportFilePath(reportFilePath) {
@@ -140,37 +143,39 @@ std::string DigitalTwinEngine::generateDashboard() const {
         return output.str();
     }
 
-    const double totalScore = std::accumulate(students.begin(), students.end(), 0.0,
-        [](double total, const std::shared_ptr<Student>& student) {
-            return total + (student ? student->calculatePerformanceScore() : 0.0);
-        });
-
-    const double averageScore = totalScore / static_cast<double>(students.size());
+    double totalScore = 0.0;
+    std::size_t validStudentCount = 0;
     int ugCount = 0;
     int pgCount = 0;
     int scholarshipCount = 0;
     int improvingCount = 0;
     int decliningCount = 0;
     int stableCount = 0;
+    int debarCount = 0;
     int highRiskCount = 0;
     int mediumRiskCount = 0;
     int lowRiskCount = 0;
 
-    std::shared_ptr<Student> topStudent = students.front();
+    std::shared_ptr<Student> topStudent;
     for (const auto& student : students) {
         if (!student) {
             continue;
         }
 
-        if (!topStudent || student->calculatePerformanceScore() > topStudent->calculatePerformanceScore()) {
+        ++validStudentCount;
+        const double score = student->calculatePerformanceScore();
+        totalScore += score;
+
+        if (!topStudent || score > topStudent->calculatePerformanceScore()) {
             topStudent = student;
         }
 
-        if (student->getType() == "UG") {
+        const std::string studentType = Utils::toUpper(student->getType());
+        if (studentType == "UG") {
             ++ugCount;
-        } else if (student->getType() == "PG") {
+        } else if (studentType == "PG") {
             ++pgCount;
-        } else if (student->getType() == "SCHOLARSHIP") {
+        } else if (studentType == "SCHOLARSHIP") {
             ++scholarshipCount;
         }
 
@@ -182,26 +187,53 @@ std::string DigitalTwinEngine::generateDashboard() const {
             ++stableCount;
         }
 
-        const std::string riskLevel = student->getRiskLevel();
-        if (riskLevel == "High") {
+        const std::string riskLevel = Utils::toUpper(student->getRiskLevel());
+        if (riskLevel == "DEBAR") {
+            ++debarCount;
+        } else if (riskLevel == "HIGH") {
             ++highRiskCount;
-        } else if (riskLevel == "Medium") {
+        } else if (riskLevel == "MEDIUM") {
             ++mediumRiskCount;
         } else {
             ++lowRiskCount;
         }
     }
 
-    output << "Total Students       : " << students.size() << '\n';
+    if (validStudentCount == 0) {
+        output << "No valid student records available.\n";
+        return output.str();
+    }
+
+    const double averageScore = totalScore / static_cast<double>(validStudentCount);
+    const auto pct = [validStudentCount](int count) {
+        return (100.0 * static_cast<double>(count)) / static_cast<double>(validStudentCount);
+    };
+
+    output << "Total Students        : " << validStudentCount << '\n';
     output << "Average Performance   : " << Utils::formatDouble(averageScore) << '\n';
     if (topStudent) {
         output << "Top Performer        : " << topStudent->getName() << " (" << topStudent->getId() << ") - "
                << Utils::formatDouble(topStudent->calculatePerformanceScore()) << '\n';
     }
-    output << "Type Distribution     : UG=" << ugCount << ", PG=" << pgCount << ", Scholarship=" << scholarshipCount << '\n';
-    output << "Trend Distribution    : Improving=" << improvingCount << ", Stable=" << stableCount << ", Declining=" << decliningCount << '\n';
-    output << "Risk Distribution     : High=" << highRiskCount << ", Medium=" << mediumRiskCount << ", Low=" << lowRiskCount << '\n';
-    output << "Risk Students         : " << getRiskStudents().size() << '\n';
+    output << '\n';
+    output << "TYPE DISTRIBUTION\n";
+    output << "  UG                 : " << ugCount << " (" << Utils::formatDouble(pct(ugCount), 1) << "%)\n";
+    output << "  PG                 : " << pgCount << " (" << Utils::formatDouble(pct(pgCount), 1) << "%)\n";
+    output << "  Scholarship        : " << scholarshipCount << " (" << Utils::formatDouble(pct(scholarshipCount), 1) << "%)\n";
+
+    output << '\n';
+    output << "TREND DISTRIBUTION\n";
+    output << "  Improving          : " << improvingCount << " (" << Utils::formatDouble(pct(improvingCount), 1) << "%)\n";
+    output << "  Stable             : " << stableCount << " (" << Utils::formatDouble(pct(stableCount), 1) << "%)\n";
+    output << "  Declining          : " << decliningCount << " (" << Utils::formatDouble(pct(decliningCount), 1) << "%)\n";
+
+    output << '\n';
+    output << "RISK DISTRIBUTION\n";
+    output << "  Debar              : " << debarCount << " (" << Utils::formatDouble(pct(debarCount), 1) << "%)\n";
+    output << "  High               : " << highRiskCount << " (" << Utils::formatDouble(pct(highRiskCount), 1) << "%)\n";
+    output << "  Medium             : " << mediumRiskCount << " (" << Utils::formatDouble(pct(mediumRiskCount), 1) << "%)\n";
+    output << "  Low                : " << lowRiskCount << " (" << Utils::formatDouble(pct(lowRiskCount), 1) << "%)\n";
+    output << "  Risk Students      : " << getRiskStudents().size() << '\n';
     return output.str();
 }
 
@@ -258,17 +290,17 @@ std::string DigitalTwinEngine::generateReportContent() const {
 
 void DigitalTwinEngine::displayAllStudents() const {
     if (students.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
     Utils::printHeader("ALL STUDENTS");
     Utils::printLine('-', 80);
-    std::cout << std::left << std::setw(12) << "ID"
+    cout << std::left << std::setw(12) << "ID"
               << std::setw(20) << "Name"
               << std::setw(14) << "Type"
               << std::setw(15) << "Department"
-              << std::setw(8) << "Year"
+              << std::setw(10) << "Semester"
               << std::setw(10) << "Score"
               << std::setw(12) << "Trend"
               << std::setw(10) << "Risk"
@@ -276,7 +308,7 @@ void DigitalTwinEngine::displayAllStudents() const {
     Utils::printLine('-', 80);
     for (const auto& student : students) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
@@ -284,17 +316,17 @@ void DigitalTwinEngine::displayAllStudents() const {
 void DigitalTwinEngine::displaySortedStudents() const {
     const auto sortedStudents = getSortedByPerformance(true);
     if (sortedStudents.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
     Utils::printHeader("STUDENTS SORTED BY PERFORMANCE");
     Utils::printLine('-', 80);
-    std::cout << std::left << std::setw(12) << "ID"
+    cout << std::left << std::setw(12) << "ID"
               << std::setw(20) << "Name"
               << std::setw(14) << "Type"
               << std::setw(15) << "Department"
-              << std::setw(8) << "Year"
+              << std::setw(10) << "Semester"
               << std::setw(10) << "Score"
               << std::setw(12) << "Trend"
               << std::setw(10) << "Risk"
@@ -302,7 +334,7 @@ void DigitalTwinEngine::displaySortedStudents() const {
     Utils::printLine('-', 80);
     for (const auto& student : sortedStudents) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
@@ -310,17 +342,17 @@ void DigitalTwinEngine::displaySortedStudents() const {
 void DigitalTwinEngine::displayTopPerformers(std::size_t limit) const {
     const auto topStudents = getTopPerformers(limit);
     if (topStudents.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
     Utils::printHeader("TOP PERFORMERS");
     Utils::printLine('-', 80);
-    std::cout << std::left << std::setw(12) << "ID"
+    cout << std::left << std::setw(12) << "ID"
               << std::setw(20) << "Name"
               << std::setw(14) << "Type"
               << std::setw(15) << "Department"
-              << std::setw(8) << "Year"
+              << std::setw(10) << "Semester"
               << std::setw(10) << "Score"
               << std::setw(12) << "Trend"
               << std::setw(10) << "Risk"
@@ -328,13 +360,14 @@ void DigitalTwinEngine::displayTopPerformers(std::size_t limit) const {
     Utils::printLine('-', 80);
     for (const auto& student : topStudents) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
 
 void DigitalTwinEngine::displayAnalyticsDashboard() const {
-    std::cout << generateDashboard();
+    Utils::printHeader("SYSTEM ANALYTICS DASHBOARD");
+    cout << generateDashboard();
 }
 
 void DigitalTwinEngine::displayRiskPredictionSystem() const {
@@ -342,16 +375,16 @@ void DigitalTwinEngine::displayRiskPredictionSystem() const {
     const auto riskStudents = getRiskStudents();
 
     if (riskStudents.empty()) {
-        std::cout << "No risk students identified.\n";
+        cout << "No risk students identified.\n";
         return;
     }
 
     Utils::printLine('-', 80);
-    std::cout << std::left << std::setw(12) << "ID"
+    cout << std::left << std::setw(12) << "ID"
               << std::setw(20) << "Name"
               << std::setw(14) << "Type"
               << std::setw(15) << "Department"
-              << std::setw(8) << "Year"
+              << std::setw(10) << "Semester"
               << std::setw(10) << "Score"
               << std::setw(12) << "Trend"
               << std::setw(10) << "Risk"
@@ -360,14 +393,14 @@ void DigitalTwinEngine::displayRiskPredictionSystem() const {
 
     for (const auto& student : riskStudents) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 
-    std::cout << '\n' << "Detailed Suggestions:\n";
+    cout << '\n' << "Detailed Suggestions:\n";
     for (const auto& student : riskStudents) {
         if (student) {
-            std::cout << student->getId() << " - " << student->getName() << ": " << student->getSuggestion() << '\n';
+            cout << student->getId() << " - " << student->getName() << ": " << student->getSuggestion() << '\n';
         }
     }
 }

@@ -66,14 +66,25 @@ std::string PGStudent::getType() const {
 }
 
 std::string PGStudent::getProfileTag() const {
-    return "Postgraduate research and specialization";
+    if (getScholarshipPercent() >= 50.0) {
+        return "PhD track (Semester 1-4)";
+    }
+    return "Masters track (Semester 1-4)";
 }
 
 double PGStudent::calculatePerformanceScore() const {
-    const double score = 0.35 * gpaToScore(getGpa()) +
-                         0.20 * getAttendanceRate() +
-                         0.30 * getResearchScore() +
-                         0.15 * getAssignmentScore();
+    double score = 0.0;
+    if (getScholarshipPercent() >= 50.0) {
+        score = 0.30 * gpaToScore(getGpa()) +
+                0.15 * getAttendanceRate() +
+                0.40 * getResearchScore() +
+                0.15 * getProjectScore();
+    } else {
+        score = 0.35 * gpaToScore(getGpa()) +
+                0.20 * getAttendanceRate() +
+                0.25 * getResearchScore() +
+                0.20 * getProjectScore();
+    }
     return Utils::clampValue(score, 0.0, 100.0);
 }
 

@@ -7,6 +7,8 @@
 #include <memory>
 #include <string>
 
+using namespace std;
+
 namespace {
 
 constexpr const char* kStudentsFile = "students.txt";
@@ -14,13 +16,13 @@ constexpr const char* kReportFile = "report.txt";
 
 void printBanner() {
     Utils::printLine('=', 80);
-    std::cout << "                    STUDENT DIGITAL TWIN SYSTEM\n";
-    std::cout << "             Smart academic analytics and risk dashboard\n";
+    cout << "                    STUDENT DIGITAL TWIN SYSTEM\n";
+    cout << "             Smart academic analytics and risk dashboard\n";
     Utils::printLine('=', 80);
 }
 
 void printMenu() {
-    std::cout << "\n[1] Add Student\n"
+    cout << "\n[1] Add Student\n"
               << "[2] View All Students\n"
               << "[3] Search Student by ID\n"
               << "[4] Delete Student\n"
@@ -34,22 +36,36 @@ void printMenu() {
 }
 
 std::shared_ptr<Student> createStudentFromMenu() {
-    std::cout << "\nSelect student type:\n";
-    std::cout << "1. UG Student\n";
-    std::cout << "2. PG Student\n";
-    std::cout << "3. Scholarship Student\n";
+    cout << "\nSelect student type:\n";
+    cout << "1. UG Student\n";
+    cout << "2. PG Student\n";
+    cout << "3. Scholarship Student\n";
 
     const int typeChoice = Utils::readInt("Enter choice: ", 1, 3);
     const std::string id = Utils::readText("Student ID: ");
     const std::string name = Utils::readText("Full Name: ");
     const std::string department = Utils::readText("Department: ");
-    const int year = Utils::readInt("Study Year (1-8): ", 1, 8);
+    const int maxSemester = (typeChoice == 2) ? 4 : 8;
+    const std::string semesterPrompt = (typeChoice == 2) ? "Semester (1-4): " : "Semester (1-8): ";
+    const int year = Utils::readInt(semesterPrompt, 1, maxSemester);
     const double gpa = Utils::readDouble("GPA (0.0 - 4.0): ", 0.0, 4.0);
     const double attendance = Utils::readDouble("Attendance % (0 - 100): ", 0.0, 100.0);
     const double assignments = Utils::readDouble("Assignment Score % (0 - 100): ", 0.0, 100.0);
-    const double projects = Utils::readDouble("Project Score % (0 - 100): ", 0.0, 100.0);
-    const double research = Utils::readDouble("Research Score % (0 - 100): ", 0.0, 100.0);
-    const double scholarship = Utils::readDouble("Scholarship % (0 - 100): ", 0.0, 100.0);
+    const double projects = Utils::readDouble("Semester Project Score % (0 - 100): ", 0.0, 100.0);
+    double research = 0.0;
+    double scholarship = 0.0;
+
+    if (typeChoice == 2) {
+        cout << "Select PG program:\n";
+        cout << "1. Masters\n";
+        cout << "2. PhD\n";
+        const int pgProgram = Utils::readInt("Enter choice: ", 1, 2);
+        research = Utils::readDouble("Research Score % (0 - 100): ", 0.0, 100.0);
+        scholarship = (pgProgram == 2) ? 100.0 : 0.0;
+    } else if (typeChoice == 3) {
+        scholarship = Utils::readDouble("Scholarship % (0 - 100): ", 0.0, 100.0);
+    }
+
     const double previousPerformance = 0.0;
 
     if (typeChoice == 1) {
@@ -69,11 +85,11 @@ std::shared_ptr<Student> createStudentFromMenu() {
 
 void printStudentTableHeader() {
     Utils::printLine('-', 80);
-    std::cout << std::left << std::setw(12) << "ID"
+    cout << std::left << std::setw(12) << "ID"
               << std::setw(20) << "Name"
               << std::setw(14) << "Type"
               << std::setw(15) << "Department"
-              << std::setw(8) << "Year"
+              << std::setw(10) << "Semester"
               << std::setw(10) << "Score"
               << std::setw(12) << "Trend"
               << std::setw(10) << "Risk"
@@ -84,7 +100,7 @@ void printStudentTableHeader() {
 void showStudents(const DigitalTwinEngine& engine) {
     const auto& students = engine.getStudents();
     if (students.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
@@ -92,7 +108,7 @@ void showStudents(const DigitalTwinEngine& engine) {
     printStudentTableHeader();
     for (const auto& student : students) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
@@ -100,7 +116,7 @@ void showStudents(const DigitalTwinEngine& engine) {
 void showSortedStudents(const DigitalTwinEngine& engine) {
     const auto students = engine.getSortedByPerformance(true);
     if (students.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
@@ -108,7 +124,7 @@ void showSortedStudents(const DigitalTwinEngine& engine) {
     printStudentTableHeader();
     for (const auto& student : students) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
@@ -117,7 +133,7 @@ void showTopPerformers(const DigitalTwinEngine& engine) {
     const int count = Utils::readInt("How many top performers to display? ", 1, 20);
     const auto students = engine.getTopPerformers(static_cast<std::size_t>(count));
     if (students.empty()) {
-        std::cout << "No student records found.\n";
+        cout << "No student records found.\n";
         return;
     }
 
@@ -125,14 +141,14 @@ void showTopPerformers(const DigitalTwinEngine& engine) {
     printStudentTableHeader();
     for (const auto& student : students) {
         if (student) {
-            student->printSummary(std::cout);
+            student->printSummary(cout);
         }
     }
 }
 
 void showReportCard(const Student& student) {
     Utils::printHeader("STUDENT REPORT CARD");
-    std::cout << student.reportCard();
+    cout << student.reportCard();
     Utils::printLine('=', 80);
 }
 
@@ -156,7 +172,7 @@ bool promptAndAssignInt(const std::string& label, int& currentValue, int minimum
             currentValue = parsed;
             return true;
         }
-        std::cout << "Enter a valid integer between " << minimum << " and " << maximum << ".\n";
+        cout << "Enter a valid integer between " << minimum << " and " << maximum << ".\n";
     }
 }
 
@@ -171,7 +187,7 @@ bool promptAndAssignDouble(const std::string& label, double& currentValue, doubl
             currentValue = parsed;
             return true;
         }
-        std::cout << "Enter a valid number between " << minimum << " and " << maximum << ".\n";
+        cout << "Enter a valid number between " << minimum << " and " << maximum << ".\n";
     }
 }
 
@@ -179,17 +195,18 @@ void updateStudentInteractive(DigitalTwinEngine& engine) {
     const std::string id = Utils::readText("Enter student ID to update: ");
     Student* student = engine.findStudentById(id);
     if (!student) {
-        std::cout << "Student not found.\n";
+        cout << "Student not found.\n";
         return;
     }
 
     Utils::printHeader("CURRENT RECORD");
-    std::cout << student->reportCard();
+    cout << student->reportCard();
     Utils::printLine('=', 80);
 
     std::string name = student->getName();
     std::string department = student->getDepartment();
     int year = student->getYear();
+    const int maxSemester = (Utils::toUpper(student->getType()) == "PG") ? 4 : 8;
     double gpa = student->getGpa();
     double attendance = student->getAttendanceRate();
     double assignments = student->getAssignmentScore();
@@ -199,13 +216,17 @@ void updateStudentInteractive(DigitalTwinEngine& engine) {
 
     promptAndAssignString("Full Name", name);
     promptAndAssignString("Department", department);
-    promptAndAssignInt("Study Year", year, 1, 8);
+    promptAndAssignInt("Semester", year, 1, maxSemester);
     promptAndAssignDouble("GPA", gpa, 0.0, 4.0);
     promptAndAssignDouble("Attendance %", attendance, 0.0, 100.0);
     promptAndAssignDouble("Assignment Score %", assignments, 0.0, 100.0);
-    promptAndAssignDouble("Project Score %", projects, 0.0, 100.0);
-    promptAndAssignDouble("Research Score %", research, 0.0, 100.0);
-    promptAndAssignDouble("Scholarship %", scholarship, 0.0, 100.0);
+    promptAndAssignDouble("Semester Project Score %", projects, 0.0, 100.0);
+    if (Utils::toUpper(student->getType()) == "PG") {
+        promptAndAssignDouble("Research Score %", research, 0.0, 100.0);
+    }
+    if (Utils::toUpper(student->getType()) == "SCHOLARSHIP") {
+        promptAndAssignDouble("Scholarship %", scholarship, 0.0, 100.0);
+    }
 
     const double previousScore = student->calculatePerformanceScore();
     student->setName(name);
@@ -220,15 +241,15 @@ void updateStudentInteractive(DigitalTwinEngine& engine) {
     student->setPreviousPerformanceScore(previousScore);
 
     if (engine.saveData()) {
-        std::cout << "Student updated successfully.\n";
+        cout << "Student updated successfully.\n";
     } else {
-        std::cout << "Student updated, but saving failed.\n";
+        cout << "Student updated, but saving failed.\n";
     }
 }
 
 void saveStudentData(DigitalTwinEngine& engine) {
     if (!engine.saveData()) {
-        std::cout << "Warning: could not save student data.\n";
+        cout << "Warning: could not save student data.\n";
     }
 }
 
@@ -238,7 +259,7 @@ int main() {
     DigitalTwinEngine engine;
 
     printBanner();
-    std::cout << "Loaded records: " << engine.getStudents().size() << '\n';
+    cout << "Loaded records: " << engine.getStudents().size() << '\n';
 
     while (true) {
         printMenu();
@@ -248,9 +269,9 @@ int main() {
         case 1: {
             auto student = createStudentFromMenu();
             if (engine.addStudent(student)) {
-                std::cout << "Student added successfully.\n";
+                cout << "Student added successfully.\n";
             } else {
-                std::cout << "A student with that ID already exists.\n";
+                cout << "A student with that ID already exists.\n";
             }
             break;
         }
@@ -263,16 +284,16 @@ int main() {
             if (student) {
                 showReportCard(*student);
             } else {
-                std::cout << "Student not found.\n";
+                cout << "Student not found.\n";
             }
             break;
         }
         case 4: {
             const std::string id = Utils::readText("Enter student ID to delete: ");
             if (engine.deleteStudent(id)) {
-                std::cout << "Student deleted successfully.\n";
+                cout << "Student deleted successfully.\n";
             } else {
-                std::cout << "Student not found.\n";
+                cout << "Student not found.\n";
             }
             break;
         }
@@ -288,25 +309,24 @@ int main() {
         case 8: {
             const std::string reportContent = engine.generateReportContent();
             if (FileManager::saveReport(kReportFile, reportContent)) {
-                std::cout << "Report generated successfully in report.txt\n";
+                cout << "Report generated successfully in report.txt\n";
             } else {
-                std::cout << "Failed to generate report.\n";
+                cout << "Failed to generate report.\n";
             }
             break;
         }
         case 9:
-            Utils::printHeader("SYSTEM ANALYTICS DASHBOARD");
-            std::cout << engine.generateDashboard();
+            engine.displayAnalyticsDashboard();
             break;
         case 10:
             engine.displayRiskPredictionSystem();
             break;
         case 0:
             saveStudentData(engine);
-            std::cout << "Exiting system. Data saved successfully.\n";
+            cout << "Exiting system. Data saved successfully.\n";
             return 0;
         default:
-            std::cout << "Invalid option. Try again.\n";
+            cout << "Invalid option. Try again.\n";
             break;
         }
     }

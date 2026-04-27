@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 namespace Utils {
 
 inline std::string trim(const std::string& value) {
@@ -50,55 +52,55 @@ inline double clampValue(double value, double minimum, double maximum) {
 }
 
 inline void printLine(char character = '-', int count = 80) {
-    std::cout << std::string(count, character) << '\n';
+    cout << std::string(count, character) << '\n';
 }
 
 inline void printHeader(const std::string& title) {
     printLine('=', 80);
-    std::cout << title << '\n';
+    cout << title << '\n';
     printLine('=', 80);
 }
 
 inline std::string readText(const std::string& prompt, bool allowEmpty = false) {
     while (true) {
-        std::cout << prompt;
+        cout << prompt;
         std::string value;
-        std::getline(std::cin, value);
+        std::getline(cin, value);
         value = trim(value);
         if (allowEmpty || !value.empty()) {
             return value;
         }
-        std::cout << "Input cannot be empty. Try again.\n";
+        cout << "Input cannot be empty. Try again.\n";
     }
 }
 
 inline int readInt(const std::string& prompt, int minimum, int maximum) {
     while (true) {
-        std::cout << prompt;
+        cout << prompt;
         std::string input;
-        std::getline(std::cin, input);
+        std::getline(cin, input);
         std::stringstream stream(input);
         int value = 0;
         char extra = '\0';
         if (stream >> value && !(stream >> extra) && value >= minimum && value <= maximum) {
             return value;
         }
-        std::cout << "Enter a valid integer between " << minimum << " and " << maximum << ".\n";
+        cout << "Enter a valid integer between " << minimum << " and " << maximum << ".\n";
     }
 }
 
 inline double readDouble(const std::string& prompt, double minimum, double maximum) {
     while (true) {
-        std::cout << prompt;
+        cout << prompt;
         std::string input;
-        std::getline(std::cin, input);
+        std::getline(cin, input);
         std::stringstream stream(input);
         double value = 0.0;
         char extra = '\0';
         if (stream >> value && !(stream >> extra) && value >= minimum && value <= maximum) {
             return value;
         }
-        std::cout << "Enter a valid number between " << minimum << " and " << maximum << ".\n";
+        cout << "Enter a valid number between " << minimum << " and " << maximum << ".\n";
     }
 }
 
